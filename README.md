@@ -13,6 +13,8 @@ Production-ready : False. This version is intended to be a showcase of the core 
 
 License: SEE LICENSE IN LICENSE.md
 
+Copyright (c) Keerthi Vasan
+
 ---
 
 ## What's realSync? 
