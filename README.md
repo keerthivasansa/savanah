@@ -18,7 +18,9 @@ Copyright (c) Keerthi Vasan
 ---
 
 ## What's realSync? 
-realSync is the technology we use to instantaneously show changes in your Database be it in search queries, other updates, etc.. If you tell the database to update 1 Million Records if it's price is $56, the name should be "Sushi", and that line of code is followed by the deletion of all documents with the name "Sushi", the database will delete all documents with price as $56, based on your last condition even if it's only 0.01 ms since the last command as you would expect it to. The Database is **always up-to-date**, and all your commands are executed on the updated version no matter the interval between the commands
+realSync is the technology we use to instantaneously show changes in your Database be it in search queries, other updates, etc.. 
+If you update your database and search in the next command, the updated results will be returned even if it's only 0.01 ms since the last command
+The Database is **always up-to-date**, and all your commands are executed on the updated version no matter the interval between the commands
 
 ## NoSQL or SQL?
 Gone are the days where you have to trade off flexibility and scaling for relations and joins. SavanahDB is NoSQL by definition, but it can also be used to join records from other tables, establish relationships and easily construct complex relational conditions like :
