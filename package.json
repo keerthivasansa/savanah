@@ -1,11 +1,8 @@
 {
   "name": "savanahdb",
-  "version": "0.1.0",
+  "version": "0.1.3",
   "description": "SavanahDB is a NoSQL DBMS that supports join, complex relations and sharding. Hare Edition - The start of SavanahDB, More exciting features coming soon in Saber Edition.",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "keywords": [
     "savanahdb",
     "database",
@@ -18,6 +15,10 @@
     "storage",
     "db"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Nectres/savanah"
+  },
   "author": "Keerthi Vasan",
   "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",

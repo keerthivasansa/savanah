@@ -1,4 +1,4 @@
-![HareLogo](https://content-na.drive.amazonaws.com/v2/download/presigned/2OL6S8sboReZgHnzKToaMyvvlKYqApKLoWmKj5spKuopX92IB)
+![HareLogo](https://i.ibb.co/sPQTDKg/savanah-4-1.png)
 
 # Savanah
 SavanahDB is a futuristic Database Management Software built entirely on NodeJS. From realSync to ms search of millions of documents, it's a complete collection of mind-blowing digital 1s and 0s. Be Part of the Future
@@ -43,14 +43,30 @@ For : Hare Edition
 
 ## Setting up :
 
+`server.js`
 ```javascript
   import { Server } from "savanahdb"
   
-  let server = new Server('/home/usr/db/') // The Path to the Collection of the Databases
+  let server = new Server({
+      path : '/home/usr/db/',
+      key:  process.env.DBKEY
+  })  
   
-  let db = server.db("library")
-  let tb = db.table("books")
   
+```
+Recommended : Run server.js with pm2
+Now connect to the server with 
+`client.js`
+```javascript
+    import { Client } from "savanahdb"
+
+    let client= new Client({
+        key : process.env.key
+    }) // leaving host, port to connect to deafault address of localhost:7777
+
+    let db = client.db("library")
+    let tb = db.table("books")
+
 ```
 That's it for creating a Database and a Table . It will create a new one if it doesn't exist in the path, or just connect to the existing one. The same goes for the table
 
@@ -136,8 +152,7 @@ tb.search('price < 50') // Returns the First Document with price below 50
 ```
 To explaing "join", let's create a simple relationship where you store "Posts" a "User" posts. The Initial Setup:
 ```javascript
-let server = new Server('/home/usr/db/')
-let db = server.db('network')
+let db = client.db('network')
 let users = db.table('users')
 let posts = db.table('posts')  
 ```
