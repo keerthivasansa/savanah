@@ -3,6 +3,7 @@
 ![Version](https://img.shields.io/badge/Version-1.0.1-red)
 ![Activity](https://img.shields.io/badge/Supported-Yes-blueviolet)
 
+![Logo](https://thumbnails-photos.amazon.com/v1/thumbnail/C2yTitUIRBaD0CQj7YfquA?viewBox=2732%2C683&ownerId=A3VO5VGPW45J4C&groupShareToken=EATagQLXSwygHtzfVpFQWg.eZFEnJJ3az55bQOsuC80Gh)
 
 # SavanahDB
 
