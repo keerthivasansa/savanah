@@ -1,229 +1,132 @@
-![HareLogo](https://i.ibb.co/sPQTDKg/savanah-4-1.png)
+![Edition](https://img.shields.io/badge/Edition-Saber-orange)
+![Release](https://img.shields.io/badge/Release-1-or)
+![Version](https://img.shields.io/badge/Version-1.0.1-red)
+![Activity](https://img.shields.io/badge/Supported-Yes-blueviolet)
 
-# Savanah
-SavanahDB is a futuristic Database Management Software built entirely on NodeJS. From realSync to ms search of millions of documents, it's a complete collection of mind-blowing digital 1s and 0s. Be Part of the Future
 
----
+# SavanahDB
 
-Latest Version : **Hare Edition ( 0.1.a )**
+A Full-blown Professional Database Management Software written completely in Javascript
 
-Production-ready : False. This version is intended to be a showcase of the core concepts of SavanahDB. A more secure, feature-packed version is coming in the Saber Edition which will be aimed for production environment. 
 
-**Support me** : SavanahDB is developed by one student, to support me and my other projects please consider becoming my Patron here : https://www.patreon.com/savanah . Ofcourse, this project is free-to-use and always will be.
+## Support and Contribution
 
-License: SEE LICENSE IN LICENSE.md
+The Official Discord Server where you can get support for this package from the developer: [Invite](https://discord.com/invite/GBmMQd2xtB)
 
-Copyright (c) Keerthi Vasan
+This package is developed, maintained and updated with a single person. If you would like to financially support the creator and thereby this package consider becoming a patron : [Patreon](https://www.patreon.com/savanah)
+## Basic Documentation
 
----
+### Setting up a Server
 
-## What's realSync? 
-realSync is the technology we use to instantaneously show changes in your Database be it in search queries, other updates, etc.. 
-If you update your database and search in the next command, the updated results will be returned even if it's only 0.01 ms since the last command
-The Database is **always up-to-date**, and all your commands are executed on the updated version no matter the interval between the commands
+Write the below code in a file
 
-## NoSQL or SQL?
-Gone are the days where you have to trade off flexibility and scaling for relations and joins. SavanahDB is NoSQL by definition, but it can also be used to join records from other tables, establish relationships and easily construct complex relational conditions like :
-`( price >= 50 || customer == "John" && ( city == "New York" || country == "France" ) )`
-and get an Array of JSON but also having some new Features like Shards, realSync, etc..
-
-### Upcoming Features in `Saber Edition` : 
- - Extended Type Support : Store Maps, Sets, Dates and more Types as is in the Database
- - The Server will be written in Go?
- - More Secure, reliable Package
- - Opening new Threads on-demand to manage traffic and load [Vertical Scaling]
- - Connect Multiple Servers and creating a "Mainframe" which divides the load across multiple devices without sacrificing consistency [Horizontal Scaling]
- - Encrypted Export and Import 
- - Tree Encryption 
- - User Access Management : Allow / deny user access to specific tables, specific commands on tables, etc..
-
-# Documentation :
- 
-For : Hare Edition
-
-## Setting up :
-
-`server.js`
+`server.js` 
 ```javascript
-  import { Server } from "savanahdb"
-  
-  let server = new Server({
-      path : '/home/usr/db/',
-      key:  process.env.DBKEY
-  })  
-  
-  
+import { Server } from 'savanahdb'
+
+let server = new Server({
+    path : "/var/data/",
+    masterKey : process.env.MASTER_KEY   
+})
 ```
-Recommended : Run server.js with pm2
-Now connect to the server with 
-`client.js`
+
+By default it listens in `http://localhost:7777` but it can be changed by passing `host,port` in the Server options
+
+Run it with [pm2](https://npmjs.com/package/pm2)
+
+### Connecting to the Server
 ```javascript
-    import { Client } from "savanahdb"
+import { Client } from 'savanahdb'
 
-    let client= new Client({
-        key : process.env.key
-    }) // leaving host, port to connect to deafault address of localhost:7777
+let client = new Client({
+    user : "root",
+    pass : "create a new admin account with a secure password and delete this"   
+})
 
-    let db = client.db("library")
-    let tb = db.table("books")
+let db = client.db("demo")
 
+let tb = db.table("no")
 ```
-That's it for creating a Database and a Table . It will create a new one if it doesn't exist in the path, or just connect to the existing one. The same goes for the table
+The above credentials are the Default ones, please do remember to create a new user and delete the `root` user
 
-## Inserting Documents
-
-Inserting Documents into the Database is pretty easy too. Following the above Code from Setting up,
+### Insert
+Inserting data into a table is easy, structure the data into JSON Format and pass it to insert() function of a Table
 
 ```javascript
 tb.insert({
-    author : "Robert",
-    name : "Shadows of the Future",
-    price : 100
-})  
-```
-It takes any valid JSON and inserts into the Table. Most funcitons in Savanah are asynchronous in nature, and so is non-blocking
-But if you have to insert multiple Documents at once, using insertSet() is much more efficient
-
-```javascript
-tb.insert([{
-    author : "Robert",
-    name : "Shadows of the Future",
-    price : 100
-  },{
-    author : 'Claire',
-    name : "The Cave",
-    price: 45
-}])  
-```
-
-## Updating Documents
-
-Based on a given condition, you can update documents in a Table. It takes the condition / filter as the First argument, an Update Object as the second argument and OptionsObject as the third
-
-```javascript
-tb.update('price >=50' , {
-    _dec : ['price'],
-    priceislow : true
+   author : "Robert",
+   price : 120,
+   premium : true
 })
 ```
----
 
-**Operators** : Valid Operators that can be used in a Filter / Condition : `<,<=,>,>=,==,===,!=`
+or to insert a set of documents : 
 
----
-
-### The Update Object
-Update Object is the Object that contains properties to be updated. For eg: To set "author" as "Robert", Update Object should be as follows: { author : "Robert" }
-But it also takes few special properties like the `_inc` and `_dec`. The `_inc` increments a Property and `_dec` decrements a Property.
-Example : 
 ```javascript
-tb.update('price > 50' , {
-    _dec : ['price','cost'],
-    _inc : ['demand','rep']
-} , { limit : 5 })
-```
-Above code increments the properties "demand" and "rep" and decrements the properties "price" and "cost" where the price is greated than 50 till 5 Documents are updated 
-
----
-
-**Options** : { **limit** : Takes a Number indicating the no. of Documents to be Updated, Pass "none" to make SavanahDB update all documents matching the condition. If nothing is passed, limit is taken as 1. }
-
----
-
-## Deleting Documents
-
-Pass a condition and optionally an OptionsObject with limit to delete documents
-```javascript
-tb.delete('author == "Robert"' , { limit : 5 })
-```
-Few more Examples : 
-```javascript
-tb.delete('price > 50' , { limit : 'none' }) // Delete all documents with price greater than 50
-
-tb.delete('name == "Sushi") // Deletes the First Document with name as "Sushi"
+tb.insertSet([{
+   author : "Robert",
+   price : 120,
+   premium : true
+},{
+   author : "John",
+   price : 40,
+   premium : false
+}])
 ```
 
-## Search
+### Search
 
-Generally the most used part of a Database Software, Search comes with a lot of features baked in. 
-First, a simple search :
+Valid Operators : `!=, ==, ===, >, <, >=, <=`
+
+Get an array of documents that match a given condition
+
 ```javascript
-tb.search('price < 50') // Returns the First Document with price below 50
-```
-To explaing "join", let's create a simple relationship where you store "Posts" a "User" posts. The Initial Setup:
-```javascript
-let db = client.db('network')
-let users = db.table('users')
-let posts = db.table('posts')  
-```
-First, you store the User Document when they sign up: 
-```javascript
-users.insert({
-    name : 'John Adam',
-    city : 'New York',
-    tier : 'Silver',
-    prem : true,
-    id : 'usrOw9a0eif0923aewf'
+tb.search('name == "John"') // gets all documents with name as John
+
+tb.search('( name == "John" && price > 100 ) || premium === true') 
+// you can group conditions to get better suited results
+
+tb.search('name != "John"' , {
+  join : {
+       authors : 'that.name == this.author as author_info'
+  },
+  limit : 5
 })
-```
-Next you store two Posts they posted in referance to their `id` essentially establishing a relationship between the tables:
-```javascript
-posts.insert({
-    usr : 'usrOw9a0eif0923aewf',
-    content : 'I love this network.'
-})
-// A Few Moments Later..
-posts.insert({
-    usr : 'usrOw9a0eif0923aewf',
-    content : "Nvm, I don't know anymore"
-})
-```
-Now when someone visits the Orginal User's Profile to list the posts they have posted, you create a search like this : 
-```javascript
-let usr = await users.search('id == ""', {
-    join : {
-      posts : 'that.usr == this.id' 
-    }
-}
-```
-In this case the `usr` Document will be : 
-```javascript
-[{
-   name : 'John Adam',
-    city : 'New York',
-    tier : 'Silver',
-    prem : true,
-    id : 'usrOw9a0eif0923aewf',
-    posts : [{
-    usr : 'usrOw9a0eif0923aewf',
-    content : 'I love this network.'
-  },{
-    usr : 'usrOw9a0eif0923aewf',
-    content : "Nvm, I don't know anymore"
-  }]
-}] // => Note that a Search always returns an Array even if limit is 1
+//joins documents from other tables. Here "authors" is the table from 
+// which the data is going to be joined
+// and limits the result to a maximum of 5 Documents
 ```
 
-## Sharding
+### Update
+Update existing data with a condition and limit
+```javascript
+tb.update('author == "John"' , {
+  premium : false,
+  _inc : ['rep', 'price'] // increment properties
+} , { limit : 2 }) 
+```
+Limits defaults to 1, pass "none" as limit to update all records that satisfy the condition
 
-## What's a Shard? And how to determine the Keys to use as Shard Keys
-Sharding takes properties of Document as argument and splits the entire table into smaller pieces called Shards. This significantly increases the performance across the board except increases the time taken to insert documents ( It only takes a few ms, but still slower than normal ). The more properties you have to shard, the better the performance
-Cool, you may ask "Why shouldn't I shard with every property I use ?" The explanation is if you don't specify the shards example : `price` in the filter, it will take a longer time because now it has to scan through all the pieces. The Best Properties to shard are the ones you most often use in your filter. Think of your use case, how you would form a filter during update, search and delete. Are there any common properties you always use? Then use them as your shard keys. For example: You are a bank and you store the location of the customer. Now everytime you query you include the "Branch" and "Country" to get the exact customer. Then it's best to shard the entire table based on "Branch" and "Country". This significantly increases performance without changing filter at all.
-
-## How to Shard?
-Once you decide on the shard keys, it's time to actually do the sharding. To shard use :
+### Delete
 
 ```javascript
-tb.shard([keys])
+tb.delete('premium === false')
 ```
-It's best to do it before going live, but it won't affect your Documents whatsoever.
-Sharding for the Bank Example : 
-```javascript
-tb.shard(['country','branch'])
-```
-If you think you need to reverse and merge all shards together again, you can use unshard():
-```javascript
-tb.unshard()
-```
-This automatically merges all existing shards into one file again.
-It's best to mess around a little bit, and think about your use case for deciding the Shard Keys. Obviously you can use SavanahDB and not shard your Table, but if you want to scale and increase your Performance, this is a great way to go.
+
+Limits defaults to 1, pass "none" as limit to delete all records that satisfy the condition
+
+
+
+----
+
+Copyright (c) 2021 Keerthi Vasan <mrsheepwithglasses@gmail.com>
+
+**Patreon** : [here](https://www.patreon.com/savanah)
+
+**Discord Server** : [Invite](https://discord.com/invite/GBmMQd2xtB)
+
+-----
+
+## License
+
+[Click here](https://github.com/Nectres/savanah/blob/master/LICENSE.md) to read the License

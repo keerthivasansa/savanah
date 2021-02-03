@@ -19,6 +19,7 @@ export function joinParser(val, d, length) {
         if (i != 0) str += `else `
         str += `if (${ftr.replace('d?.', `ds[${i}]?.`)})  { ds[${i}]["${n}"] ? ds[${i}]["${n}"] : ds[${i}]["${n}"] = [ doc ]; if (c+=1 == ds.length) r.close() }\n`
     }
+    console.log(str)
     return [d, str];
 }
 

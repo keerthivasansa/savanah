@@ -9,6 +9,7 @@ import { SavanahError } from "../base/error.js";
 function randomStr() {
     return (Math.random() * 9999).toString(32)
 }
+
 export class Syncer {
     constructor(path, interval, shard) {
         this.path = path;
@@ -21,10 +22,9 @@ export class Syncer {
         this.counter[name] += 1;
         return this.counter[name] <= l
     }
-    updateQ(ftr, upd, l) {
+    updateQ(ftr, upd, l = 1) {
         this.toSync = true;
         let str;
-        if (!l) l = 1;
         if (l != 'none') {
             let n = randomStr()
             while (this.counter[n]) n = randomStr()
@@ -34,10 +34,9 @@ export class Syncer {
         else str = `if(${ftr}) {  ${upd} };`
         this.queue.push(str)
     }
-    updateShard(ftr, shard, shards, upd, l) {
+    updateShard(ftr, shard, shards, upd, l = 1) {
         this.toSync = true;
         let str;
-        if (!l) l = 1;
         if (l != 'none') {
             let n = randomStr()
             while (this.counter[n]) n = randomStr()
@@ -48,10 +47,9 @@ export class Syncer {
         this.shardSync[shard] ? this.shardSync[shard].push(str) : this.shardSync[shard] = [str]
         this.shards = shards;
     }
-    deleteQ(ftr, l) {
+    deleteQ(ftr, l = 1) {
         this.toSync = true;
         let str;
-        if (!l) l = 1;
         if (l != 'none') {
             let n = randomStr()
             while (this.counter[n]) n = randomStr()
@@ -116,12 +114,12 @@ export class Syncer {
                 writeFileSync(path + '/shard.meta', arr.toString())
                 createFolders(path + '/shards/')
                 let r = createReadStream(path + '/docs.wr')
-                .pipe(es.split()).pipe(es.parse()).on('data', d => {
-                    c += 1;
-                    appendFile(path + '/shards/' + getShardName(d, arr), JSON.stringify(d) + '\n', _ =>
-                        chk()
-                    )
-                })
+                    .pipe(es.split()).pipe(es.parse()).on('data', d => {
+                        c += 1;
+                        appendFile(path + '/shards/' + getShardName(d, arr), JSON.stringify(d) + '\n', _ =>
+                            chk()
+                        )
+                    })
                 r.on('close', _ => {
                     unlinkSync(path + '/docs.wr')
                 })
@@ -138,7 +136,7 @@ export class Syncer {
         if (!l) l = 1;
         return new Promise((res, rej) => {
             let re = []
-            let str = baseFtrParse(ftr)    
+            let str = baseFtrParse(ftr)
             if (!chkStr(str, 'd'))
                 throw new SavanahError({
                     msg: 'Malformed Fiter Expression',
@@ -169,7 +167,7 @@ export class Syncer {
                 let sync = self.shardSync[name] ? self.shardSync[name] : ''
                 let str = ''
                 let c = 0
-                let r = createReadStream(path + '/shards/' + name, { encoding: 'utf8' })              
+                let r = createReadStream(path + '/shards/' + name, { encoding: 'utf8' })
                 eval(` 
                 r.pipe(es.split()).pipe(es.parse()).pipe(es.mapSync(d =>{
                 ${sync}

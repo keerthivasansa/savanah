@@ -6,19 +6,21 @@ interface TableOpts {
 
 
 interface ServerOptions {
-    path : string,
-    key : string,
-    cert : String,
-    secure : Boolean,
-    allowedIps : Array<String>,
-    privateKey: string,
+    path: string,
+    masterKey: String,
+    cert?: String,
+    secure?: Boolean,
+    allowedIps?: Array<String>,
+    privateKey?: String
 }
 
 interface ClientOptions {
-    key : String,
-    secure : Boolean,
-    host : String,
-    port : String | Number
+    user: String,
+    pass: String,
+    secure?: Boolean,
+    encryptionKey?: String,
+    host?: String,
+    port?: String | Number
 }
 
 export class Server {
@@ -27,38 +29,57 @@ export class Server {
      * @example 
      * let server = new Server({     
      *      path : '/home/urs/db/',
-     *      key : process.env.DBKEY,
      *      secure : true,
      *      privateKey : 'pathtokey.pem',
      *      cert : 'pathtocert',
-     *      allowedIps : ['23.234.123.43']     
+     *      allowedIps : ['23.234.123.43' , '127.0.0.1']     
      * })
      */
-    constructor(opts : ServerOptions)
-    /**
-     * Connect to / Create a Database
-     * @param name The Name of the Database
-     * @example let db = server.db("library")
-     */
+    constructor(opts: ServerOptions)
 }
+
+
+interface UserCreateOpts {
+    user: String,
+    pass: String
+}
+
 
 export class Client {
     /**
      * Provide only the key to automatically connect to use the default values
      * @example 
      * let client = new Client({
-     *    port :  7777,
-     *    host : 'localhost',
-     *    key  :  process.env.DBKEY
+     *    port:  7777,
+     *    host: 'localhost',
+     *    user: 'root',
+     *    encryptionKey: 'a encryption key that is 32 bytes long' // used to encrypt and decrypt fields across users
+     *    pass: 'create a new admin account with a secure password and delete this'
      * })
      */
-    constructor(opts : ClientOptions)
+    constructor(opts: ClientOptions)
     /**
     * Connect to / Create a Database
     * @param name The Name of the Database
     * @example let db = server.db("library")
     */
-    db(name): Database
+    db(name: String): Database
+    /**
+     * Create a new user  [Must be an admin to perform this action]
+     * @param opts Options to create a user
+     */
+    createUser(opts: UserCreateOpts): Promise<0>
+    /**
+     * Change permissions of a User [Must be an admin to perform this action]
+     * @param permissions The permissions that you want to change for that user
+     */
+    editUser(user: String, permissions: JSON): Promise<0>
+    /**
+     * Delete a user
+     *  [Must be an admin to perform this action]
+     * @param user The name of the user you want to delete
+     */
+    deleteUser(user: String): Promise<0>
 }
 
 declare class Database {
@@ -71,10 +92,6 @@ declare class Database {
     table(name: String, opts: TableOpts): Table
 }
 
-interface Result {
-    code: Number,
-    err?: Error
-}
 declare type Join = JSON;
 
 interface SearchOptions {
@@ -85,6 +102,19 @@ interface SearchOptions {
 interface Options {
     limit?: Number | "none"
 }
+
+interface genOpts {
+    silent?: String,
+    label?: String
+}
+
+/**
+ * Generate a random key with desired length. The key will get displayed
+ * @param length Desired Length of the Key
+ * @param label Label of the Key
+ */
+export function genKey(length: Number, opts?: genOpts): String
+
 
 declare class Table {
     /**

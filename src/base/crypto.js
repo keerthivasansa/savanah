@@ -1,4 +1,6 @@
-import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from "crypto"
+import { createCipheriv, createDecipheriv, publicEncrypt, constants, privateDecrypt, createHash, createHmac, generateKeyPair, randomBytes } from "crypto"
+import { chmod, chown, fchmod, writeFile } from "fs";
+import { readFile } from "fs/promises";
 import isObj from 'type/object/is.js'
 
 function val(c) {
@@ -11,9 +13,30 @@ function deval(c) {
     else return c.slice(1)
 }
 
+export function henc(tsecret, v) {
+    tsecret = Buffer.from(tsecret).slice(0, 32)
+    let iv = randomBytes(64)
+    let c = createCipheriv('aes-256-gcm', tsecret, iv)
+    let d = c.update(val(v))
+    let fin = iv.toString('base64') + Buffer.concat([d, c.final()]).toString('base64')
+    let hmac = createHmac('sha256', tsecret).update(fin).digest().toString('base64')
+    return fin + '.h' + hmac
+}
+export function hdec(tsecret, str) {
+    tsecret = Buffer.from(tsecret).slice(0, 32)
+    let y = str.split('.h')
+    let data = y[0]
+    let hmac = y.slice(1).join('.h')
+    if (!verify(tsecret, data, hmac))
+        return { tamper: true }
+    let iv = Buffer.from(data.slice(0, 88), 'base64')
+    let c = createCipheriv('aes-256-gcm', tsecret, iv)
+    let d = c.update(Buffer.from(data.slice(88), 'base64'))
+    return deval(Buffer.concat([d, c.final()]).toString())
+}
 export function encrypt(tsecret, v) {
-    let iv = randomBytes(12)
-    let c = createCipheriv('aes-128-ccm', tsecret, iv, { authTagLength: 12 })
+    let iv = randomBytes(16)
+    let c = createCipheriv('aes-256-gcm', tsecret, iv)
     let d = c.update(val(v))
     let fin = iv.toString('base64') + Buffer.concat([d, c.final()]).toString('base64')
     let hmac = createHmac('sha256', tsecret).update(fin).digest().toString('base64')
@@ -29,16 +52,14 @@ function verify(sec, data, hash) {
 export function decrypt(tsecret, str) {
     let y = str.split('.h')
     let data = y[0]
-    let hmac = y[1]
+    let hmac = y.slice(1).join('.h')
     if (!verify(tsecret, data, hmac))
         return '[Tampered]'
-    let iv = Buffer.from(data.slice(0, 16), 'base64')
-    let c = createCipheriv('aes-128-ccm', tsecret, iv, { authTagLength: 12 })
-    let d = c.update(Buffer.from(data.slice(16), 'base64'))
+    let iv = Buffer.from(data.slice(0, 24), 'base64')
+    let c = createCipheriv('aes-256-gcm', tsecret, iv)
+    let d = c.update(Buffer.from(data.slice(24), 'base64'))
     return deval(Buffer.concat([d, c.final()]).toString())
 }
-
-let t = Buffer.from('faF#$Pokf09skfAWefl[plafew_efawefaspokfe', 'utf8').slice(0, 16)
 
 export function encJson(t, d, keys) {
     let str = ''
@@ -67,3 +88,36 @@ export function decJson(t, d, keys) {
     eval(str);
     return d;
 }
+
+export function genKey(length, opts = {}) {
+    let k = randomBytes(length / 2).toString('hex')
+    let { silent = true, label = 'Generated Key' } = opts
+    if (!silent) console.log(`Generated Key Pair : ${label} : ${k}`)
+    return k
+}
+
+export function encryptFile(key, data, path) {
+    return new Promise((res, rej) => writeFile(path, henc(key, data), _ => res()))
+}
+export function decryptFile(key, path) {
+    return new Promise((res, rej) => readFile(path).then(buf => res(hdec(key, buf.toString()))))
+}
+
+/**
+encryptFile(tse, JSON.stringify({
+    root: {
+        admin: true,
+    }, node: {
+        lib: ['insert', 'update'],
+        node: ['search']
+    } , user2 : {
+        lib : ['search']
+    } , imp : {
+        auth : genKey(128),
+        lib : 'all'
+    }
+}), 'users.conf')
+
+ */
+// Calling generateKeyPair() method
+// with its parameters 

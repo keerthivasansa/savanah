@@ -1,18 +1,24 @@
 {
   "name": "savanahdb",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "SavanahDB is a NoSQL DBMS that supports join, complex relations and sharding. Hare Edition - The start of SavanahDB, More exciting features coming soon in Saber Edition.",
   "main": "index.js",
   "keywords": [
     "savanahdb",
     "database",
     "light",
-    "database",
+    "data storage",
+    "storage",
+    "mysql",
     "nosql",
     "sql",
     "mongodb",
     "mongoose",
     "storage",
+    "document",
+    "document-driven",
+    "data management",
+    "json",
     "db"
   ],
   "repository": {

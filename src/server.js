@@ -1,4 +1,4 @@
-import { createReadStream, existsSync, readFile, readFileSync } from "fs";
+import { createReadStream, existsSync, readFile, readFileSync, writeFile, writeFileSync } from "fs";
 import { SavanahError as SavanahError } from "./base/error.js";
 import { createFolders } from "./base/other.js";
 import { joinShardParse } from "./base/parser.js";
@@ -9,10 +9,14 @@ import { Syncer, Communicator } from "./ops/syncer.js";
 import es from 'event-stream'
 import ws from 'ws'
 import { createServer } from 'https'
+import { decrypt, decryptFile, encrypt, encryptFile, hdec, henc } from "./base/crypto.js";
 
 class ServerCom {
 
 }
+
+const admincmds = ['createusr', 'deleteusr' , 'editusr']
+
 
 export class Server {
     constructor(opts) {
@@ -24,11 +28,45 @@ export class Server {
                 name: 'Missing Required Params'
             })
         ensure(opts, 'obj', 'ServerOptions')
-        let { secure, cert, privateKey, server, allowedIps, path, key, syncInterval } = opts;
+        let { masterKey, cert, privateKey, server, allowedIps, path, syncInterval, port, sslPassphrase } = opts;
+        ensure(masterKey, 'string', 'MasterKey')
+        if (masterKey.length != 64)
+            throw new Error('The MasterKey must be of length 64. You can use genKey(64) to generate a new key easily')
+        this.path = path;
+        if (existsSync(path + '/__meta/usr.conf')) {
+            decryptFile(masterKey, path + '/__meta/usr.conf').then(res => {
+                if (res == 't')
+                    throw new Error('The User Configurate has been tampered with or the masterKey is not the same key used to encrypt before.')
+                this.users = JSON.parse(res)
+            })
+        } else {
+            createFolders(path + '/__meta/usr.conf')
+            this.users = {
+                root: {
+                    admin: true,
+                    auth: 'IYFehruErliQetvYxankdtDXko9JSNPCkc+9VBjNavLxcrRsWTQkkAmzIqBL3wqGJiuLT1X0ABMfBc0t3sZXPg==9IyiKeGAYZDtlqY=.hki9Yr0ddJ4UT+x8Gs/zDMW4vhs9wXXE2/H/iInBw9uc='
+                }
+                // { user : "root" , pass : "create a new admin account with a secure password and delete this" }
+                // This account is just here to make SavanahDB familiar to use for you. Once you are done with basics and setting up, create a new admin account and delete this account.
+                // ANYONE can access your Database over network if you keep this account. You SHOULD NOT open SavanahDB beyond localhost before deleting this account
+            }
+        }
+        if (port) {
+            let t = typeof (port)
+            if (t != 'string' && t != 'number')
+                throw new SavanahError({
+                    msg: 'Port should be a number or a string',
+                    name: 'Invalid port'
+                })
+        }
+        else port = 7777
 
-
+        function verifyUsr(name, pass) {
+            if (!self.users?.[name]?.auth) return false;
+            return hdec(pass, self.users[name]['auth'])?.tamper != true ? true : false;
+        }
         this.config['allowedIps'] = allowedIps ? allowedIps : ['::ffff:127.0.0.1', '127.0.0.1']
-        if (secure) {
+        if (cert) {
             ensure(cert, 'string', 'Path to Certificate')
             ensure(privateKey, 'string', 'Path to Key')
             if (!existsSync(cert) || !existsSync(privateKey))
@@ -40,22 +78,27 @@ export class Server {
             this.config['privateKey'] = readFileSync(privateKey, { encoding: 'utf-8' })
             let secureServer = createServer({
                 cert: this.config['cert'],
-                key: this.config['privateKey']
+                key: this.config['privateKey'],
+                rejectUnauthorized: false
+            }, (req, res) => {
+                res.write("Hello, welcome!")
+                res.end()
             })
+            secureServer.listen(2309)
             server = new ws.Server({
                 server: secureServer,
-                port: 7777,
+                port,
                 verifyClient: (client, done) => {
-                    if (client.req.headers['key'] != key) return done(false, 405);
                     if (!this.config['allowedIps'].includes('0.0.0.0') && !this.config['allowedIps'].includes(client.req.socket.remoteAddress)) return done(false, 403)
+                    if (!verifyUsr(client.req.headers['user'], client.req.headers['pass'])) return done(false, 405);
                     done(true, 200)
                 }
             })
         } else server = new ws.Server({
-            port: 7777,
+            port,
             verifyClient: (client, done) => {
-                if (client.req.headers['key'] != key) return done(false, 405);
                 if (!this.config['allowedIps'].includes('0.0.0.0') && !this.config['allowedIps'].includes(client.req.socket.remoteAddress)) return done(false, 403)
+                if (!verifyUsr(client.req.headers['user'], client.req.headers['pass'])) return done(false, 405);
                 done(true, 200)
             }
         })
@@ -63,15 +106,6 @@ export class Server {
         ensure(path, 'string', 'path')
         this.com = new ServerCom()
         this.path = path;
-
-        ensure(key, 'string', 'Key')
-        if (key.length < 16)
-            throw new SavanahError({
-                name: 'Invalid Key Length',
-                msg: 'The Length of the Key must be greater than or equal to 16'
-            })
-
-        this.key = key;
 
         function sendMsg(ws, json) {
             ws.send(JSON.stringify(json))
@@ -83,10 +117,11 @@ export class Server {
             server.close()
             let dbs = Object.keys(self.com)
             return new Promise((res, rej) => {
+                if (dbs.length == 0) return res()
                 dbs.forEach(db => {
                     let tbs = Object.keys(self.com[db]).filter(d => d != 'com')
                     c += tbs.length;
-                    tbs.forEach(async tb => {
+                    tbs.forEach(tb => {
                         if (self.com[db][tb].syncing) new Promise((res, rej) => {
                             setInterval(_ => {
                                 if (!self.com[db][tb].syncing) res()
@@ -103,7 +138,7 @@ export class Server {
                 })
             })
         }
-
+       
         function getTable(db, name) {
             if (!self.com?.[db]) {
                 self.com[db] = {}
@@ -113,18 +148,62 @@ export class Server {
                 self.com[db][name] = new Table(name, self.path + '/' + db, self.com[db]['com'], syncInterval)
             return self.com[db][name]
         }
+        function isAuth(db, usr, cmd) {
+            if (self.users?.[usr]?.["admin"] === true)
+                return true;
+            else if (self.users?.[usr]?.[db] === "all" ? true : self.users?.[usr]?.[db]?.includes(cmd))
+                return true
+            else return false;
+        }
+        function isAdmin(usr) {
+            return self.users?.[usr]?.["admin"] === true ? true : false
+        }
         server.on('connection', (ws, req) => {
+            function updateUsrConfig(id) {
+                encryptFile(masterKey, JSON.stringify(self.users), path + '/__meta/usr.conf').then(_ => {
+                    sendMsg(ws, { res: 0, id })
+                })
+            }
             ws.on('message', m => {
                 m = JSON.parse(m)
-                let t = getTable(m.db, m.tb)
-                let { id } = m;
-                let { doc, docs, ftr, opts, upd, array } = m.params
-                switch (m.cmd) {
+                let { id, db, tb, usr, cmd, params } = m;     
+                if (!admincmds.includes(cmd) ? isAdmin(usr) : isAuth(db, usr, cmd))
+                    return sendMsg(ws, { res: false, code: 2, id })
+                let t = getTable(db, tb)
+                let { doc, docs, ftr, opts, upd, array } = params
+                switch (cmd) {
+                    case 'createusr':
+                        let usr_ = m.params['load']['user'];
+                        if (this.users[usr_]) return sendMsg(ws, { res: false, code: 7, id })
+                        this.users[usr_] = m.params['load']
+                        updateUsrConfig(id)
+                        break;
+                    case 'editusr':
+                        let usredit = this.users[m.params['load']['user']];
+                        if (!usredit) return sendMsg(ws, { res: false, code: 8, id })
+                        if (usredit?.admin === true && usredit['user'] != usr) return sendMsg(ws, { res: false, code: 8, id })
+                        Object.keys(m.params['perms']).forEach(key => {
+                            this.users[m.params['perms']['user']][key] = m.params['perms'][key]
+                        })
+                        updateUsrConfig(id)
+                        break;
+                    case 'deleteusr':
+                        let user = m.params['user']
+                        if (!this.users[user]) return sendMsg(ws, { res: false, code: 6, id })
+                        if (user != usr) return sendMsg(ws, { res: false, code: 4, id })
+                        let tmp = this.users[user];
+                        delete this.users[user]
+                        if (Object.keys(this.users).filter(d => this.users[d]['root'] == true).length < 1) {
+                            this.users[user] = tmp;
+                            return sendMsg(ws, { res: false, code: 5, id })
+                        }
+                        updateUsrConfig(id)
+                        break;
                     case 'insert':
                         t.insert(doc).then(_ => sendMsg(ws, { res: 0, id }))
                         break;
                     case 'insertset':
-                        t.insertSet(docs, _ => sendMsg(ws, { res: 0, id }))
+                        t.insertSet(docs).then(_ => sendMsg(ws, { res: 0, id }))
                         break;
                     case 'search':
                         t.search(ftr, opts).then(ds => sendMsg(ws, { res: ds, id }))

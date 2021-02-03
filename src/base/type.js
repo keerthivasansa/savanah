@@ -23,7 +23,7 @@ export function ensure(val, t, name) {
             })
             break;
         case 'arr':
-            ensureArr(val , {
+            ensureArr(val, {
                 errorMessage: `${name} must be an Array`
             })
             break;

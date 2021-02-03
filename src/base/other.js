@@ -39,3 +39,6 @@ export function rand(arr) {
     return arr[Math.ceil(Math.random() * (arr.length - 1))]
 }
 
+export function sliceKey(str) {
+    return Buffer.from(str.slice(0,16) )
+}
