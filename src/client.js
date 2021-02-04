@@ -7,7 +7,9 @@ import { SavanahError } from './base/error.js';
 import { sliceKey } from './base/other.js';
 import { ensure } from './base/type.js';
 import { filterChk } from './ops/virtualize.js';
-
+import { baseFtrParse } from './base/parser.js'
+import { updateDocParser } from './ops/update.js'
+import now from 'performance-now'
 
 function idGen() {
     return Math.random().toString(32) + Math.random().toString(32)
@@ -122,6 +124,17 @@ export class Client {
                     res(d.res);
                     delete this['reqCache'][id]
                 })
+            })
+        })
+    }
+    ping() {
+        return new Promise((res, rej) => {
+            let a = now();
+            this.send({
+                cmd: 'ping',
+                params: {}
+            }).then(_ => {
+                res(now() - a)
             })
         })
     }
@@ -242,7 +255,7 @@ class Table {
         ftr = baseFtrParse(ftr)
         upd = updateDocParser(upd)
         filterChk(upd)
-        filterChk(condition)
+        filterChk(ftr)
         return this.send({
             cmd: 'update',
             params: { ftr, upd, opts }

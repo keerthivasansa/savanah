@@ -1,5 +1,6 @@
-import { createReadStream, existsSync, readFile, readFileSync, writeFile, writeFileSync } from "fs";
-import { SavanahError as SavanahError } from "./base/error.js";
+import gfs from "graceful-fs";
+const { createReadStream, existsSync, readFile, readFileSync } = gfs
+import { SavanahError } from "./base/error.js";
 import { createFolders } from "./base/other.js";
 import { joinShardParse } from "./base/parser.js";
 import { ensure } from "./base/type.js";
@@ -9,13 +10,14 @@ import { Syncer, Communicator } from "./ops/syncer.js";
 import es from 'event-stream'
 import ws from 'ws'
 import { createServer } from 'https'
-import { decrypt, decryptFile, encrypt, encryptFile, hdec, henc } from "./base/crypto.js";
+import { decryptFile, encryptFile, hdec } from "./base/crypto.js";
+import { updateShard } from "./ops/sharding.js";
 
 class ServerCom {
 
 }
 
-const admincmds = ['createusr', 'deleteusr' , 'editusr']
+const admincmds = ['createusr', 'deleteusr', 'editusr']
 
 
 export class Server {
@@ -138,7 +140,7 @@ export class Server {
                 })
             })
         }
-       
+
         function getTable(db, name) {
             if (!self.com?.[db]) {
                 self.com[db] = {}
@@ -166,12 +168,14 @@ export class Server {
             }
             ws.on('message', m => {
                 m = JSON.parse(m)
-                let { id, db, tb, usr, cmd, params } = m;     
+                let { id, db, tb, usr, cmd, params } = m;
                 if (!admincmds.includes(cmd) ? isAdmin(usr) : isAuth(db, usr, cmd))
                     return sendMsg(ws, { res: false, code: 2, id })
                 let t = getTable(db, tb)
                 let { doc, docs, ftr, opts, upd, array } = params
                 switch (cmd) {
+                    case 'ping':
+                        return sendMsg(ws, { res: 0, id })
                     case 'createusr':
                         let usr_ = m.params['load']['user'];
                         if (this.users[usr_]) return sendMsg(ws, { res: false, code: 7, id })
@@ -231,15 +235,6 @@ export class Server {
         process.on('SIGKILL', _ => {
             emergency().then(_ => process.kill(process.pid))
         })
-        /*
-         process.on('uncaughtException' , e => {
-            emergency().then(_ => console.log(e))
-        })
-        process.on('unhandledRejection' , e => {
-            emergency().then(_ => console.log(e))
-        })
-        */
-
     }
 }
 
@@ -266,6 +261,7 @@ class Table {
         let l, join;
         if (opts)
             ({ l, join } = opts)
+        if (!existsSync(this.path + '/docs.wr')) return new Promise((res, rej) => res([]))
         let o = this.shards ? shardSearch(condition, this.path, this.shards, l, this.sync.shardSync) : this.sync.baseSearch(condition, this.path, l)
         if (!join) return o;
         else
@@ -289,6 +285,7 @@ class Table {
                             let sync = this.com[tb]?.sync?.queue ? this.com[tb].sync.queue.join(' ') : ''
                             let n = ftr[0];
                             let c = 0;
+                            if (!existsSync(this.raw_path + '/' + n + '/docs.wr')) return;
                             let r = createReadStream(this.raw_path + '/' + n + '/docs.wr')
                             r.pipe(es.split()).pipe(es.parse()).on('data', doc => {
                                 eval(sync)
@@ -307,9 +304,10 @@ class Table {
         let limit;
         if (opts) ({ limit } = opts)
         if (this.shards) {
-            let a = updateShard(this.path, this.shards, condition, upd)
-            return a.files.forEach(sh => {
-                this.sync.updateShard(a.ftr, sh, this.shards, upd, limit)
+            updateShard(this.path, this.shards, condition, upd).then(a => {
+                return a.files.forEach(sh => {
+                    this.sync.updateShard(a.ftr, sh, this.shards, upd, limit)
+                })
             })
         }
         else
@@ -332,9 +330,10 @@ class Table {
         if (opts)
             ({ limit } = opts)
         if (this.shards) {
-            let a = updateShard(this.path, this.shards, condition)
-            return a.files.forEach(sh => {
-                this.sync.deleteShard(a.ftr, this.shards, sh, limit)
+            updateShard(this.path, this.shards, condition).then(a => {
+                return a.files.forEach(sh => {
+                    this.sync.deleteShard(a.ftr, this.shards, sh, limit)
+                })
             })
         }
         else return this.sync.deleteQ(condition, limit)

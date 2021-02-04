@@ -1,4 +1,5 @@
-import { createReadStream, createWriteStream } from "fs"
+import gfs from "graceful-fs"
+const  { createReadStream, createWriteStream } = gfs
 import { createInterface } from "readline"
 
 async function shardDelete(file, path, str) {

@@ -80,6 +80,10 @@ export class Client {
      * @param user The name of the user you want to delete
      */
     deleteUser(user: String): Promise<0>
+    /**
+     * Pings the server and returns the time taken for the complete transaction in ms
+     */
+    ping() : Promise<Number>
 }
 
 declare class Database {
@@ -172,7 +176,7 @@ declare class Table {
      * @param opts Options like limit
      * @example tb.delete('price < 50 && prem == false' , { limit : 3 })
      */
-    delete(condition: String, opts?: Options): 0
+    delete(condition: String, opts?: Options): Promise<0>
 
     /**
      * NOTE : It's not recommended to run this in a live production environment - This should be setup before going live

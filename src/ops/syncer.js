@@ -1,4 +1,5 @@
-import { appendFile, createReadStream, createWriteStream, readdirSync, rename, renameSync, rmdirSync, unlinkSync, writeFileSync } from "fs";
+import gfs from "graceful-fs";
+const { appendFile, createReadStream, createWriteStream, existsSync, readdirSync, rename, renameSync, rmdirSync, unlinkSync, writeFileSync } = gfs;
 import es from 'event-stream'
 import { createFolders } from "../base/other.js";
 import { getShardName } from "./sharding.js";
@@ -113,16 +114,19 @@ export class Syncer {
                 }
                 writeFileSync(path + '/shard.meta', arr.toString())
                 createFolders(path + '/shards/')
-                let r = createReadStream(path + '/docs.wr')
-                    .pipe(es.split()).pipe(es.parse()).on('data', d => {
-                        c += 1;
-                        appendFile(path + '/shards/' + getShardName(d, arr), JSON.stringify(d) + '\n', _ =>
-                            chk()
-                        )
+                if (existsSync(path + '/docs.wr')) {
+                    let r = createReadStream(path + '/docs.wr')
+                        .pipe(es.split()).pipe(es.parse()).on('data', d => {
+                            c += 1;
+                            appendFile(path + '/shards/' + getShardName(d, arr), JSON.stringify(d) + '\n', _ =>
+                                chk()
+                            )
+                        })
+                    r.on('close', _ => {
+                        unlinkSync(path + '/docs.wr')
                     })
-                r.on('close', _ => {
-                    unlinkSync(path + '/docs.wr')
-                })
+                }
+                else return res(0)
             })
         }
         let sync = this.getSync()
@@ -131,9 +135,8 @@ export class Syncer {
             else nxt().then(_ => res())
         })
     }
-    baseSearch(ftr, path, l) {
-        let sync = this.getSync()
-        if (!l) l = 1;
+    baseSearch(ftr, path, l = 1) {
+        let sync = this.getSync()      
         return new Promise((res, rej) => {
             let re = []
             let str = baseFtrParse(ftr)
@@ -144,7 +147,7 @@ export class Syncer {
                 })
             let r = createReadStream(path + '/docs.wr', { encoding: 'utf-8' }).on('close', _ => res(re))
             eval(`
-            r.pipe(es.split()).pipe(es.parse()).pipe(es.mapSync(d => {
+            r.pipe(es.split()).pipe(es.parse()).pipe(es.map(d => {
                 ${sync}
                 return d;
             })).on('data', d => {          

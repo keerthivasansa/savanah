@@ -1,6 +1,6 @@
-import { createReadStream, readdirSync } from "fs";
+import gfs from "graceful-fs";
+const { createReadStream, readdirSync } = gfs;
 import { baseFtrParse, joinFtrParse, shardFtrRemoveOthers, op, removeOp, shardFtrRemoveShards, joinShardParse } from "../base/parser.js";
-import { createInterface } from "readline";
 import { chkStr } from "./virtualize.js";
 import { SavanahError } from './../base/error.js'
 import es from 'event-stream'
@@ -18,8 +18,7 @@ export function joinParser(val, d, length) {
     for (let i = 0; i < length; i++) {
         if (i != 0) str += `else `
         str += `if (${ftr.replace('d?.', `ds[${i}]?.`)})  { ds[${i}]["${n}"] ? ds[${i}]["${n}"] : ds[${i}]["${n}"] = [ doc ]; if (c+=1 == ds.length) r.close() }\n`
-    }
-    console.log(str)
+    } 
     return [d, str];
 }
 
@@ -114,7 +113,3 @@ export function shardSearch(ftr, path, shards, l, sync) {
         })
     })
 }
-
-/**
- console.log(await fsbaseSearch('name == "More than just a books"' , '/home/keerthivasan/Desktop/nw/lib/books/'))
- */

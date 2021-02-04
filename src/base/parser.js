@@ -1,5 +1,3 @@
-import { existsSync, readdirSync, readFileSync } from "fs";
-import { shardSearch } from "../ops/where.js";
 import { getIndexes } from "./other.js"
 
 

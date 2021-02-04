@@ -1,6 +1,6 @@
-import { createCipheriv, createDecipheriv, publicEncrypt, constants, privateDecrypt, createHash, createHmac, generateKeyPair, randomBytes } from "crypto"
-import { chmod, chown, fchmod, writeFile } from "fs";
-import { readFile } from "fs/promises";
+import { createCipheriv, createHmac, randomBytes } from "crypto"
+import gfs from "graceful-fs";
+const { writeFile  , readFile } = gfs;
 import isObj from 'type/object/is.js'
 
 function val(c) {

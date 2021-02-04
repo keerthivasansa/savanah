@@ -1,4 +1,5 @@
-import { existsSync, mkdirSync } from "fs";
+import gfs from "graceful-fs";
+const { existsSync, mkdirSync } = gfs;
 import { dirname } from "path";
 import { fileURLToPath } from "url";
 
