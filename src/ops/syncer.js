@@ -147,7 +147,7 @@ export class Syncer {
                 })
             let r = createReadStream(path + '/docs.wr', { encoding: 'utf-8' }).on('close', _ => res(re))
             eval(`
-            r.pipe(es.split()).pipe(es.parse()).pipe(es.map(d => {
+            r.pipe(es.split()).pipe(es.parse()).pipe(es.mapSync(d => {
                 ${sync}
                 return d;
             })).on('data', d => {          
@@ -205,6 +205,7 @@ export class Syncer {
     sync() {
         return new Promise((res, rej) => {
             let self = this;
+            if (self.interval == 'passive') return res()
             if (!this.toSync) return res()
             if (this.syncing) return res({ msg: 'Resource Busy - Syncing', code: 5 });
             this.syncing = true;

@@ -232,9 +232,6 @@ export class Server {
         process.on('SIGINT', _ => {
             emergency().then(_ => process.kill(process.pid))
         })
-        process.on('SIGKILL', _ => {
-            emergency().then(_ => process.kill(process.pid))
-        })
     }
 }
 
@@ -257,12 +254,10 @@ class Table {
         if (this.shards) return insertSM(arr, this.path, this.shards)
         return multiInsert(arr, this.path)
     }
-    search(condition, opts) {
-        let l, join;
-        if (opts)
-            ({ l, join } = opts)
-        if (!existsSync(this.path + '/docs.wr')) return new Promise((res, rej) => res([]))
-        let o = this.shards ? shardSearch(condition, this.path, this.shards, l, this.sync.shardSync) : this.sync.baseSearch(condition, this.path, l)
+    search(condition, opts = {}) {
+        let { limit, join } = opts;
+        if (!existsSync(this.path + '/docs.wr') && !this.shards) return new Promise((res, rej) => res([]))
+        let o = this.shards ? shardSearch(condition, this.path, this.shards, limit, this.sync.shardSync) : this.sync.baseSearch(condition, this.path, limit)
         if (!join) return o;
         else
             return new Promise((res, rej) => {

@@ -4,6 +4,7 @@ import { baseFtrParse, joinFtrParse, shardFtrRemoveOthers, op, removeOp, shardFt
 import { chkStr } from "./virtualize.js";
 import { SavanahError } from './../base/error.js'
 import es from 'event-stream'
+import { decode , encode } from "savanahdb/src/base/other.js";
 const ops = ['==', '<', '>', '<=', '>=', '!=']
 
 export function joinParser(val, d, length) {
@@ -18,23 +19,24 @@ export function joinParser(val, d, length) {
     for (let i = 0; i < length; i++) {
         if (i != 0) str += `else `
         str += `if (${ftr.replace('d?.', `ds[${i}]?.`)})  { ds[${i}]["${n}"] ? ds[${i}]["${n}"] : ds[${i}]["${n}"] = [ doc ]; if (c+=1 == ds.length) r.close() }\n`
-    } 
+    }
     return [d, str];
 }
 
 
 
-async function shardRead(ftr, file, shardvalue, shards, sync) {
+async function shardRead(ftr, file, sync, limit = 1) {
     return new Promise((res, rej) => {
         let re = []
+        function addItem(t) {
+            if (re.length == limit) return r.close()
+            re.push(t)           
+        }
         let r = createReadStream(file).on('close', _ => { res(re); })
         r.pipe(es.split()).pipe(es.parse()).on('data', d => {
-            d = JSON.parse(d)
             eval(sync)
-            if (eval(ftr)) {
-                re.push(d)
-            }
-        })
+            if (eval(ftr)) addItem(d)
+        }).on('close', _ => res(re))
     })
 }
 
@@ -92,20 +94,20 @@ export function shardSearch(ftr, path, shards, l, sync) {
     ftr = removeOp(ftr)
     let ftrShard = op(shardFtrRemoveOthers(ftr, shards))
     ftr = op(baseFtrParse(shardFtrRemoveShards(ftr, shards)))
-    if (!chkStr(ftr, 'd') || chkStr(ftrShard, 'files'))
+    if (!chkStr(ftr, 'd') || !chkStr(ftrShard, 'files'))
         throw new SavanahError({
             msg: 'Malformed Fiter Expression',
             name: 'Invalid Filter'
         })
     let files = readdirSync(path + '/shards').filter(f => {
-        f = f.split(',');
+        f = decode(f).split(',');
         if (eval(ftrShard)) return true;
     })
     let c = 0;
     return new Promise((res, rej) => {
         let re = []
         files.forEach(f => {
-            shardRead(ftr, path + '/shards/' + f, f, shards, sync[f] ? sync[f].join(' ') : '').then(d => {
+            shardRead(ftr, path + '/shards/' + f, sync[f] ? sync[f].join(' ') : '', l).then(d => {
                 re = re.concat(d)
                 c += 1;
                 if (c == files.length) return res(re)

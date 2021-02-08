@@ -1,9 +1,3 @@
----
-description: >-
-  New to SavanahDB? Here are the basics you need to get started on your project
-  with Savanah.
----
-
 # Introduction to Savanah
 
 ![Edition](https://img.shields.io/badge/Edition-Saber-orange) ![Release](https://img.shields.io/badge/Release-2-or) ![Version](https://img.shields.io/badge/Version-1.0.2-red) ![Activity](https://img.shields.io/badge/Supported-Yes-blueviolet)

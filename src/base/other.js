@@ -29,6 +29,52 @@ export function createFolders(filename) {
     );
 }
 
+// Taken from StackOverflow. Credits to 
+
+
+const illegal_file = {
+    '\\': "[_uni92__]",
+    '/': "[_uni47__]",
+    '?': "[_uni92__]",
+    '%': "[_uni37__]",
+    '*': "[_uni42__",
+    ':': "[_uni58__]",
+    '|': "[_uni124__]",
+    '"': "[_uni34__]",
+    '<': "[_uni60__]",
+    '>': "[_uni62__]",
+    '.': "[_uni46__]",
+    '=': "[_uni61__]",
+}
+
+const rillegal = {
+    "[_uni92__]": "?",
+    "[_uni47__]": "/",
+    "[_uni37__]": "%",
+    "[_uni42__": "*",
+    "[_uni58__]": ":",
+    "[_uni124__]": "|",
+    "[_uni34__]": '"',
+    "[_uni60__]": "<",
+    "[_uni62__]": ">",
+    "[_uni46__]": ".",
+    "[_uni61__]": "="
+}
+
+export function encode(str) {
+    Object.keys(illegal_file).forEach(d => {
+        str = str.replace(d, illegal_file[d])
+    })
+    return str
+}
+
+export function decode(str) {
+    Object.keys(rillegal).forEach(d => {
+        str = str.replace(d, rillegal[d])
+    })
+    return str
+}
+
 export function getIndexes(val, str) {
     var indexes = [], i = -1;
     while ((i = str.indexOf(val, i + 1)) != -1) {
